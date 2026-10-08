@@ -1,0 +1,29 @@
+# Books are copyrighted — never commit them
+*.pdf
+*.epub
+
+# A learner's library (courses, figures, learner state) never belongs in git.
+# The default library lives outside the repo (~/Curio); these catch strays.
+content/
+Curio/
+library/
+
+# Secrets
+.env
+.env.*
+
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node (bridge/dist is committed on purpose: the MCP server runs without npm install)
+node_modules/
+.next/
+out/
+app/tsconfig.tsbuildinfo
+
+# OS
+.DS_Store

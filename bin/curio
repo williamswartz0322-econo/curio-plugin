@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Curio pipeline CLI. Claude Code puts this plugin's bin/ on the Bash PATH, so
+# skills run `curio ...` directly. The Python environment is managed by uv and
+# kept outside the plugin directory, which is replaced on every update.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if ! command -v uv >/dev/null 2>&1; then
+  echo "curio: uv is required (https://docs.astral.sh/uv/) — run /curio:setup" >&2
+  exit 127
+fi
+
+ROOT_KEY="$(printf '%s' "$ROOT" | shasum | cut -c1-12)"
+export UV_PROJECT_ENVIRONMENT="${XDG_CACHE_HOME:-$HOME/.cache}/curio/venv-$ROOT_KEY"
+unset VIRTUAL_ENV
+
+exec uv run --frozen --quiet --project "$ROOT/pipeline" curio "$@"

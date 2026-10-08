@@ -1,0 +1,64 @@
+{
+  "name": "curio",
+  "displayName": "Curio",
+  "version": "0.1.0",
+  "description": "Turn your own textbooks into an adaptive course on your Claude Code plan: a faithful reader, a grounded tutor, validated practice, a learner model, prerequisite maps, and spaced review.",
+  "author": {
+    "name": "Will Swartz"
+  },
+  "keywords": [
+    "education",
+    "textbook",
+    "tutor",
+    "learning",
+    "spaced-repetition"
+  ],
+  "mcpServers": {
+    "curio": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/bridge/dist/curio-mcp.mjs"
+      ],
+      "env": {
+        "CURIO_LIBRARY": "${user_config.library}",
+        "CURIO_READER_WINDOW": "${user_config.reader_window}"
+      }
+    }
+  },
+  "channels": [
+    {
+      "server": "curio",
+      "displayName": "Curio reader"
+    }
+  ],
+  "userConfig": {
+    "library": {
+      "type": "string",
+      "title": "Library folder",
+      "description": "Where Curio keeps your courses, figures, and learner state. It stays on this computer.",
+      "default": "~/Curio"
+    },
+    "ingest_model": {
+      "type": "string",
+      "title": "Ingest model",
+      "description": "Model for the agents that turn a PDF into a course. Structuring a whole book is a lot of output: sonnet balances quality and plan usage, opus is most faithful on dense math.",
+      "options": [
+        "sonnet",
+        "opus",
+        "haiku",
+        "inherit"
+      ],
+      "default": "sonnet"
+    },
+    "reader_window": {
+      "type": "string",
+      "title": "Reader window",
+      "description": "How the reader opens: app (its own window with no tabs or address bar, when Chrome, Edge, Brave, Chromium, or Vivaldi is installed) or browser (a tab in your default browser).",
+      "options": [
+        "app",
+        "browser"
+      ],
+      "default": "app"
+    }
+  }
+}

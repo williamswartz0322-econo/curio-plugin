@@ -1,0 +1,12 @@
+{
+  "name": "curio",
+  "owner": { "name": "Will Swartz" },
+  "description": "Curio: textbooks into adaptive courses, built and tutored by Claude Code.",
+  "plugins": [
+    {
+      "name": "curio",
+      "source": "./",
+      "description": "Turn your own textbooks into an adaptive course on your Claude Code plan."
+    }
+  ]
+}

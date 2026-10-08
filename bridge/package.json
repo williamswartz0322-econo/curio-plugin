@@ -1,0 +1,24 @@
+{
+  "name": "curio-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Curio's MCP server: the kernel's tools for Claude, and the channel that carries the reader's requests into the learner's Claude Code session.",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/curio-mcp.mjs --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "node test/e2e.mjs",
+    "check:dist": "npm run build && git diff --exit-code -- dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
+  }
+}
