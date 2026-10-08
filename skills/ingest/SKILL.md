@@ -9,13 +9,18 @@ allowed-tools: Bash(curio *), Read, Agent
 
 Arguments: $ARGUMENTS
 
-Library: `${user_config.library}`. Add `--library "${user_config.library}"` to
-every `curio` command below.
+Library: `${user_config.library}`. If that still reads as a `${…}` placeholder,
+the setting is unset: run the `curio` commands below without `--library` (the
+default library is used). Otherwise add `--library "<that path>"` to each.
 
 The book is source material and must stay faithful. Structurer agents
 transcribe; they never paraphrase, and `curio` checks every answer for
 dropped text. Only concept descriptions are Curio's own words. Everything
 stays on this computer.
+
+If `curio` is not found as a command (some Windows setups), call it by its
+full path instead: `"${CLAUDE_PLUGIN_ROOT}/bin/curio"` from Git Bash, or
+`& "${CLAUDE_PLUGIN_ROOT}/bin/curio.cmd"` from PowerShell.
 
 ## 1. The book
 
@@ -38,13 +43,17 @@ Work through chapters one at a time:
    and one answer path per batch.
 2. Run one `curio:structurer` agent per batch, all batches of the chapter in a
    single message so they run in parallel (at most six at once). Use model
-   `${user_config.ingest_model}`; if that says `inherit`, omit the model
-   parameter. Prompt each with just: `Task file: <task path>`.
+   `${user_config.ingest_model}` — if that says `inherit`, omit the model
+   parameter; if it still reads as a `${…}` placeholder, use `sonnet`. Prompt
+   each with just: `Task file: <task path>`.
 3. `curio assemble --course <slug> --chapter N`. If a batch fails, run a
-   structurer on that batch's task file again, quoting the error lines in its
-   prompt. After two failed retries of the same batch, stop and report.
+   structurer on that batch's task file again, quoting its error lines in the
+   prompt (an error can name a batch whose own check passed — e.g. it stopped
+   before finishing its last section). After two failed retries of the same
+   batch, stop and report.
 4. Run the `curio:concept-extractor` agent (same model rule) with:
-   `Outline: <outline path>. Course: <slug>. Chapter: N. Library: ${user_config.library}`.
+   `Outline: <outline path>. Course: <slug>. Chapter: N.` (plus `Library: <path>`
+   if you are passing `--library`).
    It writes the concepts and runs `curio finalize`.
 5. Confirm with `curio library`, and report in one line: sections, blocks,
    concepts, and the coverage `assemble` printed.

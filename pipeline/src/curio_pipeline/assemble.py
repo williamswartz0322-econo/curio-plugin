@@ -29,6 +29,13 @@ from .tasks import CONTINUED_TITLE
 # stream are rightly dropped, so faithful output still loses a few percent.
 BATCH_COVERAGE_ERROR = 0.80
 BATCH_COVERAGE_WARN = 0.90
+# A batch boundary page is shared: the earlier batch finishes its last section
+# there and the later one starts after the next heading. If both skip their
+# part, per-batch coverage can't see it, so boundary pages are checked on the
+# merged chapter with 5-word shingles. Faithful pages, even math-heavy ones,
+# score above ~0.45; a dropped page scores near zero.
+BOUNDARY_SHINGLE_MIN = 0.30
+BOUNDARY_MIN_SHINGLES = 40
 MIN_CONCEPTS = 3
 MAX_CONCEPTS = 30
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -42,6 +49,14 @@ def words(text: str) -> Counter:
     text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
     text = LATEX_COMMAND_RE.sub(" ", text)
     return Counter(WORD_RE.findall(text.lower()))
+
+
+def shingles(text: str, n: int = 5) -> set[tuple[str, ...]]:
+    text = re.sub(r"\[\[page \d+\]\]", " ", text)
+    text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
+    text = LATEX_COMMAND_RE.sub(" ", text)
+    w = re.findall(r"[a-z]{2,}", text.lower())
+    return {tuple(w[i : i + n]) for i in range(max(len(w) - n + 1, 0))}
 
 
 def coverage(source: Counter, output: Counter) -> float:
@@ -193,6 +208,8 @@ def assemble(work_dir: Path) -> tuple[list[BatchReport], list[Section] | None]:
 
     chapter_id = manifest["chapter"]["id"]
     sections = _renumber(_merge([r.sections for r in reports]), chapter_id)
+    if not _check_boundaries(manifest, reports, sections):
+        return reports, None
     (work_dir / "sections.json").write_text(
         SectionList(sections=sections).model_dump_json(indent=2)
     )
@@ -201,6 +218,26 @@ def assemble(work_dir: Path) -> tuple[list[BatchReport], list[Section] | None]:
         f"Chapter {ch['number']}: {ch['title']}\n\n<outline>\n{outline(sections)}\n</outline>\n"
     )
     return reports, sections
+
+
+def _check_boundaries(manifest: dict, reports: list[BatchReport], sections: list[Section]) -> bool:
+    output = shingles(_section_text(sections))
+    ok = True
+    for prev, report, batch in zip(reports, reports[1:], manifest["batches"][1:]):
+        page = batch["first_page"]
+        source = shingles(_source_text(manifest, page, page))
+        if len(source) < BOUNDARY_MIN_SHINGLES:
+            continue
+        found = len(source & output) / len(source)
+        if found < BOUNDARY_SHINGLE_MIN:
+            ok = False
+            prev.errors.append(
+                f"page {page}, where this batch hands over to batch {report.batch}, is mostly "
+                f"missing from the chapter ({found:.0%} found). This batch's last section "
+                f"continues onto page {page}: transcribe it to its end, up to the next "
+                f"section's heading."
+            )
+    return ok
 
 
 def chapter_coverage(work_dir: Path, sections: list[Section]) -> float:

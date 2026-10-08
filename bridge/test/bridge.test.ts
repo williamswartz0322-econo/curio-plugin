@@ -85,6 +85,19 @@ describe("app window", () => {
     const found = appWindowCommand(url, "linux", (p) => p === "/usr/bin/chromium", { PATH: "/bin:/usr/bin" });
     expect(found?.[0]).toBe("/usr/bin/chromium");
     expect(appWindowCommand(url, "darwin", () => false, { HOME: "/Users/me" })).toBeNull();
-    expect(appWindowCommand(url, "win32", () => true, {})).toBeNull();
+
+  });
+});
+
+describe("app window on Windows", () => {
+  it("finds Edge under Program Files (x86)", async () => {
+    const { appWindowCommand } = await import("../src/reader");
+    const edge = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+    const cmd = appWindowCommand("http://127.0.0.1:1/", "win32", (p) => p === edge, {
+      PROGRAMFILES: "C:\\Program Files",
+      "PROGRAMFILES(X86)": "C:\\Program Files (x86)",
+      LOCALAPPDATA: "C:\\Users\\me\\AppData\\Local",
+    });
+    expect(cmd?.[0]).toBe(edge);
   });
 });

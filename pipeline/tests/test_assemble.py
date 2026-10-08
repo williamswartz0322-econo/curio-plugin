@@ -95,3 +95,47 @@ def test_finalize_validates_concepts(tmp_path):
     course = json.loads((course_dir / "course.json").read_text())
     assert course["chapters"][0]["draft"] is False
     assert (course_dir / "chapters" / "ch01.json").exists()
+
+
+def test_dropped_boundary_page_is_caught(tmp_path):
+    # Page 12 is shared: batch 1's section ends there, batch 2's starts after
+    # a heading. If batch 1 stops at its last full page and batch 2 rightly
+    # skips the previous section's tail, per-batch coverage passes but the
+    # text is gone. The merged-chapter shingle check must blame batch 1.
+    words = [f"word{chr(97 + i % 26)}{chr(97 + i // 26 % 26)}" for i in range(400)]
+    tail = " ".join(words[:300])
+    head = " ".join(words[300:])
+    raw = (
+        "[[page 11]]\n" + " ".join(f"opening{chr(97 + i % 26)}" for i in range(60)) + "\n\n"
+        f"[[page 12]]\n{tail}\n1.2 Next\n{head}\n"
+    )
+    course = tmp_path / "courses" / "c"
+    work = course / "work" / "ch01"
+    work.mkdir(parents=True)
+    (course / "raw").mkdir()
+    (course / "raw" / "ch01.txt").write_text(raw)
+    page11 = " ".join(f"opening{chr(97 + i % 26)}" for i in range(60))
+    answers = [
+        (11, 11, f"=== section 1.1 | First\n--- paragraph p11\n{page11}\n"),
+        (12, 12, f"=== section 1.2 | Next\n--- paragraph p12\n{head}\n"),
+    ]
+    entries = []
+    for i, (first, last, answer) in enumerate(answers, start=1):
+        out = work / f"batch-{i:02d}.blocks.txt"
+        out.write_text(answer)
+        entries.append({"index": i, "first_page": first, "last_page": last, "wanted": [], "task": "", "output": str(out)})
+    (work / "manifest.json").write_text(json.dumps({
+        "course": "c", "book": {"title": "B", "author": "", "pages": 20, "pdf": "b.pdf"},
+        "chapter": {"id": "ch01", "number": 1, "title": "T", "start_page": 11, "end_page": 12},
+        "raw_text": str(course / "raw" / "ch01.txt"), "figures": [], "batches": entries,
+    }))
+    reports, sections = assemble.assemble(work)
+    assert sections is None
+    assert "page 12" in reports[0].errors[0] and reports[1].ok
+
+    # Once batch 1 finishes its section on page 12, the chapter assembles.
+    (work / "batch-01.blocks.txt").write_text(
+        f"=== section 1.1 | First\n--- paragraph p11\n{page11}\n--- paragraph p12\n{tail}\n"
+    )
+    reports, sections = assemble.assemble(work)
+    assert sections is not None, [r.render() for r in reports]

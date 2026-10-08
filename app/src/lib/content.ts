@@ -67,8 +67,10 @@ export interface Course {
 
 /** The learner's library: $CURIO_LIBRARY, else ~/Curio. Never inside the plugin. */
 export function contentDir(): string {
-  const raw = process.env.CURIO_LIBRARY || "~/Curio";
-  return path.resolve(raw.replace(/^~(?=$|\/)/, os.homedir()));
+  let raw = process.env.CURIO_LIBRARY?.trim() ?? "";
+  // An unset plugin option can arrive as its literal "${user_config.library}".
+  if (!raw || raw.includes("${")) raw = "~/Curio";
+  return path.resolve(raw.replace(/^~(?=$|[\\/])/, os.homedir()));
 }
 
 export function courseDir(courseId: string): string {

@@ -23525,8 +23525,9 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 function contentDir() {
-  const raw = process.env.CURIO_LIBRARY || "~/Curio";
-  return path.resolve(raw.replace(/^~(?=$|\/)/, os.homedir()));
+  let raw = process.env.CURIO_LIBRARY?.trim() ?? "";
+  if (!raw || raw.includes("${")) raw = "~/Curio";
+  return path.resolve(raw.replace(/^~(?=$|[\\/])/, os.homedir()));
 }
 function courseDir(courseId) {
   return path.join(contentDir(), "courses", courseId);
@@ -23582,7 +23583,19 @@ function writeJsonAtomic(file, value) {
   fs2.mkdirSync(path2.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.${crypto2.randomBytes(4).toString("hex")}.tmp`;
   fs2.writeFileSync(tmp, JSON.stringify(value, null, 2));
-  fs2.renameSync(tmp, file);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs2.renameSync(tmp, file);
+      return;
+    } catch (err) {
+      const code = err.code;
+      if (attempt >= 20 || code !== "EPERM" && code !== "EBUSY" && code !== "EACCES") {
+        fs2.rmSync(tmp, { force: true });
+        throw err;
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+    }
+  }
 }
 function readJson(file, fallback) {
   if (!fs2.existsSync(file)) return fallback;
@@ -24562,6 +24575,11 @@ async function startReader(env) {
   return { url, stop };
 }
 var MAC_APP_BROWSERS = ["Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium", "Vivaldi"];
+var WINDOWS_APP_BROWSERS = [
+  "Google\\Chrome\\Application\\chrome.exe",
+  "Microsoft\\Edge\\Application\\msedge.exe",
+  "BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+];
 var LINUX_APP_BROWSERS = [
   "google-chrome",
   "google-chrome-stable",
@@ -24578,6 +24596,14 @@ function appWindowCommand(url, platform = process.platform, exists = fs6.existsS
     for (const name of MAC_APP_BROWSERS) {
       for (const root of roots) {
         const bin = path8.join(root, `${name}.app`, "Contents", "MacOS", name);
+        if (exists(bin)) return [bin, args];
+      }
+    }
+  } else if (platform === "win32") {
+    const roots = [env.PROGRAMFILES, env["PROGRAMFILES(X86)"], env.LOCALAPPDATA].filter(Boolean);
+    for (const rel of WINDOWS_APP_BROWSERS) {
+      for (const root of roots) {
+        const bin = path8.win32.join(root, rel);
         if (exists(bin)) return [bin, args];
       }
     }

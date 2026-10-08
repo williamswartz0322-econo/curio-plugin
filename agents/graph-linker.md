@@ -36,6 +36,10 @@ typed edges between concepts.
    edges mean you reversed direction.
 4. Reply with one line: the file written and the edge counts the command printed.
 
+If `curio` is not found as a command, use its full path:
+`"${CLAUDE_PLUGIN_ROOT}/bin/curio"` (Git Bash) or
+`& "${CLAUDE_PLUGIN_ROOT}/bin/curio.cmd"` (PowerShell).
+
 ## Course graph (graph-input.md)
 
 You are given every concept from every ingested chapter, in reading order, with

@@ -35,7 +35,9 @@ from . import assemble, bookmarks, extract, graph, structure, tasks, weave
 
 
 def _library(args: argparse.Namespace) -> Path:
-    raw = args.library or os.environ.get("CURIO_LIBRARY") or "~/Curio"
+    # An unset plugin option can reach a skill as its literal "${user_config.library}".
+    candidates = [args.library, os.environ.get("CURIO_LIBRARY")]
+    raw = next((c.strip() for c in candidates if c and c.strip() and "${" not in c), "~/Curio")
     return Path(raw).expanduser().resolve()
 
 
@@ -210,8 +212,9 @@ def cmd_weave_apply(args: argparse.Namespace) -> None:
 def cmd_library(args: argparse.Namespace) -> None:
     library = _library(args)
     courses_dir = library / "courses"
+    courses_dir.mkdir(parents=True, exist_ok=True)
     print(f"library: {library}")
-    if not courses_dir.exists():
+    if not any(courses_dir.iterdir()):
         print("  (empty)")
         return
     for course_dir in sorted(p for p in courses_dir.iterdir() if p.is_dir()):
@@ -275,7 +278,7 @@ def main() -> None:
 
     add("weave-prepare", cmd_weave_prepare, "Write every course's concepts for cross-course weaving")
     add("weave-apply", cmd_weave_apply, "Validate the weaver's bridges into web.json")
-    add("library", cmd_library, "List ingested courses")
+    add("library", cmd_library, "List ingested courses (creates the library if needed)")
     sub.add_parser("bookmarks", help="Add a chapter bookmark table from the printed contents")
 
     args = parser.parse_args()

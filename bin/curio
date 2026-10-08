@@ -11,7 +11,7 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 127
 fi
 
-ROOT_KEY="$(printf '%s' "$ROOT" | shasum | cut -c1-12)"
+ROOT_KEY="$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)"
 export UV_PROJECT_ENVIRONMENT="${XDG_CACHE_HOME:-$HOME/.cache}/curio/venv-$ROOT_KEY"
 unset VIRTUAL_ENV
 

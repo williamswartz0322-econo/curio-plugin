@@ -93,6 +93,11 @@ export async function startReader(env: Record<string, string>): Promise<Reader> 
 // address bar. That makes the reader feel like an application without
 // shipping one. First installed wins.
 const MAC_APP_BROWSERS = ["Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium", "Vivaldi"];
+const WINDOWS_APP_BROWSERS = [
+  "Google\\Chrome\\Application\\chrome.exe",
+  "Microsoft\\Edge\\Application\\msedge.exe",
+  "BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+];
 const LINUX_APP_BROWSERS = [
   "google-chrome",
   "google-chrome-stable",
@@ -118,6 +123,15 @@ export function appWindowCommand(
         // Running the binary directly hands --app to an already-running
         // browser; `open -a` would drop the arguments in that case.
         const bin = path.join(root, `${name}.app`, "Contents", "MacOS", name);
+        if (exists(bin)) return [bin, args];
+      }
+    }
+  } else if (platform === "win32") {
+    // Edge ships with Windows 10 and 11, so this nearly always finds one.
+    const roots = [env.PROGRAMFILES, env["PROGRAMFILES(X86)"], env.LOCALAPPDATA].filter(Boolean) as string[];
+    for (const rel of WINDOWS_APP_BROWSERS) {
+      for (const root of roots) {
+        const bin = path.win32.join(root, rel);
         if (exists(bin)) return [bin, args];
       }
     }

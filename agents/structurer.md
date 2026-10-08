@@ -23,6 +23,10 @@ interactive reader. You are a careful transcriber and classifier, not an author.
 
 Never edit the task file, the manifest, or anything outside the answer file.
 
+If `curio` is not found as a command, use its full path:
+`"${CLAUDE_PLUGIN_ROOT}/bin/curio"` (Git Bash) or
+`& "${CLAUDE_PLUGIN_ROOT}/bin/curio.cmd"` (PowerShell).
+
 ## Block markup
 
 ```
@@ -116,9 +120,14 @@ Question text
 You are structuring PART of a chapter. Emit sections ONLY for the entries under
 <sections_to_emit>. The excerpt deliberately overruns those pages by one page at
 each end so no sentence is lost at a boundary — text belonging to a
-neighbouring section will appear at the edges. Ignore it. In particular, when a
-section you emit starts partway down a page, the text above its heading belongs
-to the previous section and the previous batch — do not transcribe it. When an entry says to
+neighbouring section will appear at the edges. The rule at both edges is the
+same — finish what you started, skip what you didn't:
+- Your LAST section often continues onto the overlap page after your pages.
+  Transcribe it to its end, up to the next section's heading. Stopping at the
+  page break loses that text: no other batch will transcribe it.
+- When your FIRST section starts partway down a page, the text above its
+  heading belongs to the previous batch — do not transcribe it.
+When an entry says to
 continue a section, open with that section's header exactly as the book prints
 it (or `=== section | (continued)`); the assembler joins it to the previous
 batch. Do not list concepts; that is handled separately.

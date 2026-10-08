@@ -31,6 +31,10 @@ You read a structured textbook chapter and name the concepts it teaches.
    until it writes the chapter.
 4. Reply with one line: the chapter file written and the concept count.
 
+If `curio` is not found as a command, use its full path:
+`"${CLAUDE_PLUGIN_ROOT}/bin/curio"` (Git Bash) or
+`& "${CLAUDE_PLUGIN_ROOT}/bin/curio.cmd"` (PowerShell).
+
 ## Rules
 
 List the chapter's 8-20 key concepts, in the order the chapter develops them.

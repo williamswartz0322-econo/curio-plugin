@@ -1,37 +1,103 @@
 ---
 name: setup
-description: Set up Curio on this computer — check Node and uv, build the reader, create the library folder, and allow Curio's tools so the reader isn't stalled by permission prompts. Use on first install, after an update, or when the reader won't open.
+description: Set up Curio on this computer — install what's missing (Node.js, uv), build the reader, create the library folder, allow Curio's tools so the reader isn't stalled by permission prompts, and make a `curio-study` shortcut. Use on first install, after an update, or when the reader won't open.
 allowed-tools: Bash(node --version), Bash(uv --version), Bash(curio *), Read
 ---
 
 # Set up Curio
 
-1. Check the tools: `node --version` (needs 20 or newer) and `uv --version`.
-   If either is missing, tell the learner how to install it — Node from
-   https://nodejs.org or `brew install node`; uv with
-   `curl -LsSf https://astral.sh/uv/install.sh | sh` or `brew install uv` —
-   and stop until they have.
-2. Build the reader (a minute or two the first time; instant when current):
-   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh" "${CLAUDE_PLUGIN_DATA}"`
-3. Warm the pipeline's Python environment and create the library:
-   `mkdir -p "${user_config.library}"` (expand a leading `~`), then
-   `curio library --library "${user_config.library}"`.
-4. Permissions. Reader requests are answered by tool calls in this session; a
-   permission prompt on each one would stall the learner's browser. Ask the
-   learner whether to add these to `permissions.allow` in
-   `~/.claude/settings.json`, explaining each in a few words:
-   - `mcp__plugin_curio_curio` — Curio's own tools (course and learner files)
-   - `Bash(curio *)` — the ingestion pipeline
-   - `Read(<library>/**)` and `Edit(<library>/**)` — so ingestion agents can
-     read tasks and write answers in the library (use the expanded absolute
-     library path, prefixed with `/` so it reads as `//Users/...`, or `~/...`)
-   Only edit the file if they agree; merge into the existing `allow` list
-   rather than replacing anything.
-5. Channels. Ask and Practice in the browser need Claude Code started with
-   the curio channel, which is a research preview:
-   `claude --dangerously-load-development-channels plugin:curio@curio`
-   Suggest an alias, e.g. `alias curio-study='claude --dangerously-load-development-channels plugin:curio@curio'`,
-   and mention that Team/Enterprise organizations must have channels enabled
-   by an admin. Without the channel, reading works and `/curio:practice` runs
-   in the terminal.
-6. Finish with the next step: `/curio:ingest <path to a PDF>`.
+The learner may not be technical. Explain each step in a sentence of plain
+language, ask before installing anything or changing settings, and never
+assume they know what a terminal command does. Work out the platform first
+(macOS, Windows, or Linux) and use the matching instructions below.
+
+## 1. Check what's installed
+
+Run `node --version` (needs 20 or newer) and `uv --version`.
+
+If something is missing or Node is too old, offer to install it. With their
+yes:
+
+- **Windows:** `winget install --id OpenJS.NodeJS.LTS -e` and
+  `winget install --id astral-sh.uv -e` (accept the source agreements if
+  winget asks). If winget isn't available, send them to https://nodejs.org
+  (big download button, click Next through the installer) and run
+  `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"` for uv.
+- **macOS:** Node — if `brew` exists, `brew install node`; otherwise send them
+  to https://nodejs.org (big download button, open the file, click Continue
+  through the installer). uv — `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+- **Linux:** uv — `curl -LsSf https://astral.sh/uv/install.sh | sh`; Node —
+  their distribution's `nodejs` package if it is 20+, otherwise nodejs.org.
+
+New installs aren't visible to this running session. After installing, tell
+the learner: type `/exit`, close the terminal window, open a new one, start
+Claude Code the same way as before, and run `/curio:setup` again. Stop here
+until they do.
+
+uv brings its own Python, so nothing else is needed.
+
+## 2. Build the reader
+
+A minute or two the first time (it downloads the reader's parts); instant
+when already current:
+
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/setup.mjs" "${CLAUDE_PLUGIN_DATA}"`
+
+## 3. Create the library
+
+`curio library --library "${user_config.library}"` — if that value still
+reads as a `${…}` placeholder, run plain `curio library`. It creates the
+library folder (by default `Curio` in their home folder) and prints its path.
+Tell the learner that's where their books and progress live.
+
+## 4. Allow Curio's tools
+
+The reader's questions are answered by tool calls in this session; a
+permission prompt on each one would leave the learner waiting in the reader.
+Explain that, then ask whether to add these to `permissions.allow` in their
+user settings file (`~/.claude/settings.json`; on Windows
+`%USERPROFILE%\.claude\settings.json`):
+
+- `mcp__plugin_curio_curio` — Curio's own tools (course and progress files)
+- `Bash(curio *)` — the program that turns PDFs into courses
+- `Read(<library>/**)` and `Edit(<library>/**)` — so the PDF-processing
+  helpers can read and write in the library, using the path step 3 printed
+  (written as `~/Curio/**` for the default)
+
+Only edit the file if they agree. Read it first and merge into the existing
+`allow` list; never remove or replace anything already there.
+
+## 5. Make the `curio-study` shortcut
+
+Asking and practising in the reader need Claude Code started with Curio's
+connection switched on:
+
+`claude --dangerously-load-development-channels plugin:curio@curio`
+
+(If this session loaded Curio with `--plugin-dir` rather than installing it,
+the name is `plugin:curio@inline`.) Offer to save that as a shortcut called
+`curio-study`. With their yes:
+
+- **macOS / Linux:** append
+  `alias curio-study='claude --dangerously-load-development-channels plugin:curio@curio'`
+  to `~/.zshrc` (macOS default) or `~/.bashrc`, unless it's already there.
+- **Windows:** append
+  `function curio-study { claude --dangerously-load-development-channels plugin:curio@curio @args }`
+  to their PowerShell profile (the path `$PROFILE` prints; create the file
+  and its folder if missing), unless it's already there. If PowerShell later
+  refuses to load the profile because scripts are disabled, they can run
+  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.
+
+Tell them what to expect: the first time, Claude Code shows a warning about a
+"development channel" — it's the link between the book window and Claude, new
+enough to carry a warning label — and they choose "I am using this for local
+development". Team and Enterprise accounts may need an admin to allow
+channels.
+
+## 6. Finish
+
+Summarize what was done in a few plain lines, then the next steps:
+1. `/exit`, close this window, open a new terminal, and type `curio-study`.
+2. Add a book: `/curio:ingest` followed by the PDF (dragging the file into the
+   window types its location).
+3. Study: `/curio:study`.

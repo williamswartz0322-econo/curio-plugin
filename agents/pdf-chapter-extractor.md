@@ -13,6 +13,10 @@ touch the original file.
 Input you receive in the prompt: the PDF path. The `curio` command is on your
 PATH.
 
+If `curio` is not found as a command, use its full path:
+`"${CLAUDE_PLUGIN_ROOT}/bin/curio"` (Git Bash) or
+`& "${CLAUDE_PLUGIN_ROOT}/bin/curio.cmd"` (PowerShell).
+
 Steps:
 
 1. Check for an existing bookmark table: run
