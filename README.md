@@ -203,6 +203,16 @@ precise with heavy math), or to `opus` for the most faithful math.
 Install Google Chrome, Microsoft Edge, or Brave and it opens in its own clean
 window. (Windows already has Edge.)
 
+## License
+
+Curio is free and open source under the
+[GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). You can use,
+study, change, and share it. If you share a modified version, or run one that
+other people use over a network, you must make your source code available
+under the same license.
+
+Copyright © 2026 Will Swartz.
+
 ---
 
 Want to see how Curio works inside, or help build it? See

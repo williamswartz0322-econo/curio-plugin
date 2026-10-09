@@ -52,6 +52,10 @@ export default function Home() {
           </section>
         );
       })}
+      <footer className="home-footer">
+        Curio is free software under the AGPL-3.0.{" "}
+        <a href="https://github.com/williamswartz0322-econo/curio-plugin">Source code</a>
+      </footer>
     </main>
   );
 }
