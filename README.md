@@ -10,6 +10,10 @@ Curio runs on [Claude Code](https://claude.com/product/claude-code), using
 the Claude subscription you already have. There's nothing else to pay for and
 no new account to make.
 
+![Curio's reader: a textbook chapter with typeset math on the left, and the tutor answering a question about a highlighted sentence on the right](docs/images/curio-reader.png)
+
+<sub>Shown: Chapter 6 of <a href="https://openstax.org/details/books/statistics"><i>Statistics</i></a> by Barbara Illowsky, Susan Dean, et al., OpenStax, licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Access for free at openstax.org.</sub>
+
 ## What you get
 
 - **Your book, easy to read.** Every chapter becomes a clean page with the

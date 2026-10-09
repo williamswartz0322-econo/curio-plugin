@@ -152,3 +152,27 @@ def test_first_page_of_the_chapter_counts(tmp_path):
     reports, sections = assemble.assemble(work)
     assert sections is None
     assert "text was dropped" in reports[0].errors[0]
+
+
+def test_several_sections_duplicated_at_a_boundary_are_dropped():
+    # Both batches transcribed the end-of-chapter sections that sit on their
+    # shared page (page 20): more than the "last two sections" window.
+    def section(number, title, blocks):
+        return Section(id="s", number=number, title=title, blocks=[
+            Block(id="b", type="paragraph", md=md, page=page, term=None, label=None, image=None)
+            for md, page in blocks])
+
+    batch1 = [
+        section("6.4", "Pinkie Length", [("the pinkie example closes the section here", 19)]),
+        section("", "Key Terms", [("normal distribution a continuous random variable", 20)]),
+        section("", "Chapter Review", [("a z score is a standardized value for comparison", 20)]),
+        section("", "Formula Review", [("x equals mu plus z sigma recovers the raw score", 20)]),
+    ]
+    batch2 = [
+        section("", "Key Terms", [("normal distribution a continuous random variable", 20)]),
+        section("", "Chapter Review", [("a z score is a standardized value for comparison", 20)]),
+        section("", "Formula Review", [("x equals mu plus z sigma recovers the raw score", 20)]),
+        section("", "Practice", [("use the following information to answer the next questions", 21)]),
+    ]
+    merged = assemble._merge([batch1, batch2], [10, 20])
+    assert [s.title for s in merged] == ["Pinkie Length", "Key Terms", "Chapter Review", "Formula Review", "Practice"]

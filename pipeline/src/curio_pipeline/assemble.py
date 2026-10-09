@@ -170,13 +170,17 @@ def _same_text(a: str, b: str) -> bool:
     return shared / max(sum(wa.values()), sum(wb.values())) >= 0.9
 
 
-def _drop_overlap(previous: list[Section], current: list[Section]) -> list[Section]:
+def _drop_overlap(
+    previous: list[Section], current: list[Section], boundary_page: int | None
+) -> list[Section]:
     """Drop blocks at the start of a batch that repeat the previous batch's tail.
 
-    Batches share their boundary page, and a section that ends partway down it
-    can be transcribed by both. The earlier batch owns it.
+    Batches share their boundary page, and text near it can be transcribed by
+    both — sometimes several whole sections. The earlier batch owns it.
     """
     tail = [b.md for s in previous[-2:] for b in s.blocks]
+    if boundary_page is not None:
+        tail += [b.md for s in previous for b in s.blocks if b.page >= boundary_page]
     for section in current:
         while section.blocks and any(_same_text(section.blocks[0].md, t) for t in tail):
             section.blocks.pop(0)
@@ -185,11 +189,13 @@ def _drop_overlap(previous: list[Section], current: list[Section]) -> list[Secti
     return [s for s in current if s.blocks]
 
 
-def _merge(batches: list[list[Section]]) -> list[Section]:
+def _merge(batches: list[list[Section]], first_pages: list[int] | None = None) -> list[Section]:
     """Join the batches, rejoining any section split across a boundary."""
     merged: list[Section] = []
-    for sections in batches:
-        for section in _drop_overlap(merged, sections) if merged else sections:
+    for k, sections in enumerate(batches):
+        if merged:
+            sections = _drop_overlap(merged, sections, first_pages[k] if first_pages else None)
+        for section in sections:
             prev = merged[-1] if merged else None
             if prev and (
                 section.title == CONTINUED_TITLE
@@ -209,7 +215,10 @@ def assemble(work_dir: Path) -> tuple[list[BatchReport], list[Section] | None]:
         return reports, None
 
     chapter_id = manifest["chapter"]["id"]
-    sections = _renumber(_merge([r.sections for r in reports]), chapter_id)
+    sections = _renumber(
+        _merge([r.sections for r in reports], [b["first_page"] for b in manifest["batches"]]),
+        chapter_id,
+    )
     if not _check_boundaries(manifest, reports, sections):
         return reports, None
     (work_dir / "sections.json").write_text(
