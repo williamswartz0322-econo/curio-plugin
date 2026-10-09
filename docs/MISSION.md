@@ -29,11 +29,11 @@ Every mechanism in Curio must trace to an evidence-based principle. Every princi
 | Metacognition & calibration — learners act on an accurate view of their own knowledge | Flavell; Dunning-Kruger literature | The course map: mastery-coloured, misconception-flagged, prerequisite-linked | ✅ built |
 | Zone of proximal development — work just beyond current ability, scaffolded | Vygotsky | Action engine ordering: explain when thin, diagnose when shaky, stretch when solid | ✅ built |
 | Transfer — mastery means use beyond the taught example | Barnett & Ceci (2002) | Transfer item kind, generated off the book's walked path | ✅ built |
-| Spaced practice — reviews timed to forgetting | Ebbinghaus; Cepeda et al. (2006) | Phase F: per-concept review scheduling from mastery + last-seen + decay | ◐ next |
-| Interleaving — mixed practice beats blocked | Rohrer & Taylor (2007) | Phase F: review sessions mix concepts across chapters | ◐ next |
+| Spaced practice — reviews timed to forgetting | Ebbinghaus; Cepeda et al. (2006) | Phase F: per-concept review scheduling from mastery + last-seen + decay | ✅ built |
+| Interleaving — mixed practice beats blocked | Rohrer & Taylor (2007) | Phase F: review sessions mix concepts across chapters | ✅ built |
 | Worked examples first, fading as expertise grows | Sweller (cognitive load); expertise-reversal effect | Worked-example blocks exist; fading policy belongs to the planner | ○ planned |
 | Desirable difficulty — productive struggle, not frictionless answers | Bjork & Bjork | Tutor answers directly (learner's choice) but practice never reveals before an attempt | ◐ partial |
-| Goal-directed learning & autonomy | Deci & Ryan (self-determination theory) | Horizon 2: goal capture, target dates, learner-controlled plans | ○ planned |
+| Goal-directed learning & autonomy | Deci & Ryan (self-determination theory) | Phase G: goal capture, target dates, a daily plan that replans as evidence arrives | ◐ partial |
 | Active learning over passive reception | Freeman et al. (2014) | Horizon 3: labs and sessions are doing-first; lectures embed checkpoints | ○ planned |
 | Multimedia learning — narration + graphics, coherence over decoration | Mayer | Horizon 3: generated lectures follow Mayer's principles, reuse the book's own figures | ○ planned |
 
@@ -57,18 +57,18 @@ The lesson from building v0: **everything tailored shares one spine.** What make
 | Tutor | Grounded conversation, anywhere in the text | ✅ |
 | Practice | One-item assessment loop | ✅ |
 | Course map | The learner's own knowledge state, visible | ✅ |
-| Review queue | Spaced, interleaved retrieval (F) | ◐ |
-| **Lesson plan** | The action engine extended over a time horizon: goal + deadline + available hours → a schedule of kernel actions, replanned as evidence arrives | ○ |
+| Review queue | Spaced, interleaved retrieval (F) | ✅ |
+| **Lesson plan** | The action engine extended over a time horizon: goal + deadline + available hours → a schedule of kernel actions, replanned as evidence arrives | ◐ daily plan (G) |
 | **Live tutoring session** | A structured block of time — opening retrieval, guided work in the ZPD, closing check — run by the tutor with session state; voice later | ○ |
 | **Lecture** | Generated exposition over a graph path: the book's figures, narration, embedded checkpoints; cached per §2.13, verified per §2.19 | ○ |
 | **Coding / problem lab** | Sandboxed exercises generated from source material, auto-graded, feeding evidence back like any other attempt | ○ |
-| **Knowledge web** | Obsidian-style graph of everything the learner has *learned*, across all courses and subjects — only demonstrated concepts appear, cross-subject links included, growing as they learn. The course map shows the curriculum; the web shows the person. | ○ long-term |
+| **Knowledge web** | Obsidian-style graph of everything the learner has *learned*, across all courses and subjects — only demonstrated concepts appear, cross-subject links included, growing as they learn. The course map shows the curriculum; the web shows the person. | ◐ thin slice |
 
 The rule that keeps the "insane architectural project" sane: **new renderers may not invent private state.** If a lab grades an attempt, that grade lands in the same learner model the tutor reads. If a lecture explains a concept, that exposure is recorded where the planner can see it. One learner, one model, every surface.
 
 ## Horizons
 
-- **H1 — the adaptive textbook** (now): one learner, one source per course, full loop. Finish F (spacing + interleaving). Exit test: measurably better delayed retrieval on practised vs unpractised concepts.
+- **H1 — the adaptive textbook** (now): one learner, one source per course, full loop. Phase F (spacing + interleaving) is built. Exit test: measurably better delayed retrieval on practised vs unpractised concepts.
 - **H2 — the course**: goal capture and deadlines (§2.7), syllabus alignment (§2.6), the lesson-plan renderer, multi-source compilation. Exit test: give Curio a goal and a date; it runs your week and adapts when you slip.
 - **H3 — the classroom of one**: live sessions, generated lectures, labs. Each new modality ships as a vertical slice wired into the kernel from day one — never as a standalone feature. Exit test: a learner can go from "I want to learn X" to competence without ever assembling their own study plan.
 

@@ -8,7 +8,7 @@ knows what you've already learned, and tells you what to study next.
 
 Curio runs on [Claude Code](https://claude.com/product/claude-code), using
 the Claude subscription you already have. There's nothing else to pay for and
-no account to make.
+no new account to make.
 
 ## What you get
 
@@ -17,9 +17,10 @@ no account to make.
 - **A tutor on every page.** Highlight any sentence and ask about it. Answers
   use the book's own examples and section numbers, and say clearly when they
   go beyond the book.
-- **Practice questions you can trust.** Questions come from the pages that
-  teach each idea, and a second check approves every question before you see
-  it, so a wrong answer key never teaches you something false.
+- **Practice questions you can trust.** Questions come only from the pages
+  that teach each idea, and a separate reviewer checks every question and its
+  answer against the book before you see it, so you aren't drilled on a wrong
+  answer key.
 - **It remembers what you know.** Curio tracks each idea from "seen it" to
   "solid", and an idea only counts as learned once *you've* explained or
   answered it, not because the tutor explained it well.

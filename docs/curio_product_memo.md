@@ -1,5 +1,10 @@
 # Curio
 
+> The original product memo (July 2026). It sets out the long-range vision,
+> including a hosted platform; the Claude Code plugin in this repository
+> implements its adaptive core, running locally. See the
+> [README](../README.md) for what exists today.
+
 ## 1. Proposal, Thesis, and Vision
 
 ### 1.1 Proposal

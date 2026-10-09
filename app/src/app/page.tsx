@@ -16,8 +16,8 @@ export default function Home() {
       </Link>
       {courses.length === 0 && (
         <p className="empty">
-          No courses yet. Ingest one with{" "}
-          <code>cd pipeline && uv run curio ingest &lt;pdf&gt; --chapter 1</code>
+          No books yet. In Claude Code, type <code>/curio:ingest</code> and drag your textbook PDF
+          into the window.
         </p>
       )}
       {courses.map((course) => {

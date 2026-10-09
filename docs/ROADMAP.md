@@ -53,8 +53,7 @@ Encoded rule from §1.5: *the tutor explaining well is evidence of exposure, not
 mastery.* Mastery rises only when the learner demonstrates it — which is why B
 is required for anything above `exposed`.
 
-Conversations are the immutable log; `learner.json` is derived state,
-rebuildable via `POST /api/learner/rebuild`.
+Conversations are the immutable log; `learner.json` is derived state.
 
 ### B — Assessment (§2.14) ✅ done
 
