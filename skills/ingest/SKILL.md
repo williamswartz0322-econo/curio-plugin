@@ -40,8 +40,9 @@ full path instead: `"${CLAUDE_PLUGIN_ROOT}/bin/curio"` from Git Bash, or
 Work through chapters one at a time:
 
 1. `curio extract "<pdf>" --chapter N --course <slug>` — prints one task file
-   and one answer path per batch.
-2. Run one `curio:structurer` agent per batch, all batches of the chapter in a
+   and one answer path per batch. Re-running it keeps finished answers: batches
+   it marks "already done" need no agent (useful after hitting a usage limit).
+2. Run one `curio:structurer` agent per remaining batch, all of the chapter's in a
    single message so they run in parallel (at most six at once). Use model
    `${user_config.ingest_model}` — if that says `inherit`, omit the model
    parameter; if it still reads as a `${…}` placeholder, use `sonnet`. Prompt

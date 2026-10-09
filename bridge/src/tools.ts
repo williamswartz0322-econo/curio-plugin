@@ -56,6 +56,7 @@ function publicItem(item: PracticeItem) {
 export interface BridgeState {
   book: RequestBook;
   http: BridgeHttp | null;
+  token: string;
   reader: Reader | null;
 }
 
@@ -72,17 +73,18 @@ export function registerTools(mcp: McpServer, state: BridgeState): void {
     async ({ course, chapter }) => {
       try {
         if (!state.http) {
-          const token = crypto.randomBytes(24).toString("hex");
-          state.http = await startHttp(mcp.server, book, token);
+          state.token = crypto.randomBytes(24).toString("hex");
+          state.http = await startHttp(mcp.server, book, state.token);
+        }
+        // Start the reader, or restart it if it has exited since.
+        if (!state.reader?.alive()) {
           state.reader = await startReader({
             CURIO_BRIDGE_URL: state.http.url,
-            CURIO_BRIDGE_TOKEN: token,
+            CURIO_BRIDGE_TOKEN: state.token,
             CURIO_LIBRARY: contentDir(),
           });
         }
       } catch (err) {
-        state.http?.close();
-        state.http = null;
         return error(`Could not start the reader: ${err instanceof Error ? err.message : err}`);
       }
       const page =
@@ -149,13 +151,16 @@ export function registerTools(mcp: McpServer, state: BridgeState): void {
       if (pending.kind !== "ask") {
         return error(`request ${request_id} is a ${pending.kind} request — use settle_item or record_grade`);
       }
-      const conv = loadConversation(pending.course!, pending.conversationId!);
-      if (conv) {
-        appendMessage(
-          { id: conv.id, course: conv.course, chapter: conv.chapter, title: conv.title, anchor: conv.anchor, model: conv.model },
-          { role: "assistant", content: answer }
-        );
-      }
+      const head = {
+        id: pending.conversationId!,
+        course: pending.course!,
+        chapter: pending.chapter!,
+        title: pending.ask!.title,
+        anchor: pending.ask!.anchor,
+        model: "claude-code",
+      };
+      appendMessage(head, { role: "user", content: pending.ask!.question });
+      appendMessage(head, { role: "assistant", content: answer });
       book.settle(request_id, { status: 200, body: { reply: answer } });
       return text("Sent. Now record what the exchange showed with update_learner.");
     }
@@ -232,7 +237,7 @@ export function registerTools(mcp: McpServer, state: BridgeState): void {
     "propose_item",
     {
       description:
-        "Submit a drafted practice item for independent validation. Returns a draft id and a validation file: run the curio:item-validator agent on that file, then call settle_item with its verdict. Never show the question to the learner before it is approved.",
+        "Submit a drafted practice item for independent validation. Returns a draft id and a validation file: run the curio:item-validator agent on that file (it writes its verdict beside it), then call settle_item. Never show the question to the learner before it is approved.",
       inputSchema: {
         course: z.string(),
         concept_key: z.string(),
@@ -268,23 +273,24 @@ export function registerTools(mcp: McpServer, state: BridgeState): void {
     "settle_item",
     {
       description:
-        "Record the item-validator's verdict on a draft. Approved: the item is saved and, with a request_id, served to the reader. Rejected: it is discarded — draft another (next-weakest concept), up to three attempts, then fail_request.",
+        "After the curio:item-validator agent has written its verdict for a draft, settle it. Approved: the item is saved and, with a request_id, served to the reader. Rejected: it is discarded — draft another (next-weakest concept), up to three attempts, then fail_request. Refuses if the validator hasn't written a verdict.",
       inputSchema: {
         course: z.string(),
         draft_id: z.string(),
-        approved: z.boolean(),
-        note: z.string(),
         request_id: z.string().optional(),
       },
     },
-    async ({ course, draft_id, approved, note, request_id }) => {
-      let item: PracticeItem | null;
+    async ({ course, draft_id, request_id }) => {
+      let settled: ReturnType<typeof settleDraft>;
       try {
-        item = settleDraft(course, draft_id, { approved, note });
+        settled = settleDraft(course, draft_id);
       } catch (err) {
         return error(err instanceof Error ? err.message : String(err));
       }
-      if (!item) return text("Rejected and discarded. Draft another item, or fail_request after three tries.");
+      const { item, note } = settled;
+      if (!item) {
+        return text(`Rejected (${note}) and discarded. Draft another item, or fail_request after three tries.`);
+      }
       if (request_id && !book.settle(request_id, { status: 200, body: publicItem(item) })) {
         return text(`Saved item ${item.id}, but request ${request_id} had already closed.`);
       }

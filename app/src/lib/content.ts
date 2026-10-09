@@ -86,13 +86,19 @@ export function listCourses(): Course[] {
     .map((d) => JSON.parse(fs.readFileSync(path.join(root, d, "course.json"), "utf-8")));
 }
 
+// Ids reach these loaders from the reader and from tool calls; refuse
+// anything that could walk out of the library.
+const SAFE_ID = /^[a-zA-Z0-9-]+$/;
+
 export function loadCourse(courseId: string): Course | null {
+  if (!SAFE_ID.test(courseId)) return null;
   const p = path.join(courseDir(courseId), "course.json");
   if (!fs.existsSync(p)) return null;
   return JSON.parse(fs.readFileSync(p, "utf-8"));
 }
 
 export function loadChapter(courseId: string, chapterId: string): Chapter | null {
+  if (!SAFE_ID.test(courseId) || !SAFE_ID.test(chapterId)) return null;
   const p = path.join(courseDir(courseId), "chapters", `${chapterId}.json`);
   if (!fs.existsSync(p)) return null;
   return JSON.parse(fs.readFileSync(p, "utf-8"));

@@ -128,14 +128,16 @@ def check_batch(manifest: dict, batch: dict) -> BatchReport:
     report.errors += parsed.errors
     report.warnings += parsed.warnings
 
-    # The first owned page may open with the tail of the previous batch's
-    # section, which this batch rightly skips, so its words count only when
-    # they were transcribed.
+    # A later batch's first page may open with the tail of the previous
+    # batch's section, which it rightly skips, so those words count only when
+    # transcribed. The first batch has no predecessor: its first page counts.
     first, last = batch["first_page"], batch["last_page"]
     output = words(_section_text(parsed.sections))
     source = words(_source_text(manifest, first, last))
-    opening = words(_source_text(manifest, first, first))
-    skipped = sum(opening.values()) - sum((opening & output).values())
+    skipped = 0
+    if batch["index"] > 1:
+        opening = words(_source_text(manifest, first, first))
+        skipped = sum(opening.values()) - sum((opening & output).values())
     total = sum(source.values()) - skipped
     report.coverage = sum((source & output).values()) / total if total > 0 else 1.0
     if report.coverage < BATCH_COVERAGE_ERROR:

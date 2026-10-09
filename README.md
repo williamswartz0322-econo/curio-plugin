@@ -32,7 +32,8 @@ Your books and your progress stay on your computer.
 ## What you need
 
 - A Mac or a Windows PC (Linux works too)
-- A paid Claude plan: Pro, Max, Team, or Enterprise
+- A paid Claude plan: Pro or Max. (Team and Enterprise work too, once an
+  admin has turned on "channels" for the organization.)
 - Your textbook as a PDF
 
 ## Set it up (once, about 10 minutes)
@@ -46,40 +47,61 @@ press **Enter** (on a Mac, **Return**).
 - **Windows:** press the **Windows key**, type `PowerShell`, and click
   **Windows PowerShell**.
 
-**2. Install Claude Code.** Paste the line for your computer and press
-**Enter**:
+**2. Install the tools Curio uses.** These are free.
 
 - **Mac:**
+  - Install Node.js: go to [nodejs.org](https://nodejs.org), click the big
+    download button, open the file, and click **Continue** through the
+    installer.
+  - Paste these two lines into the terminal, one at a time:
+    ```
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+    ```
+    curl -fsSL https://claude.ai/install.sh | bash
+    ```
+- **Windows:** paste these four lines into PowerShell, one at a time. Say
+  **Yes** if Windows asks for permission.
   ```
-  curl -fsSL https://claude.ai/install.sh | bash
+  winget install -e --id Git.Git
   ```
-- **Windows:**
+  ```
+  winget install -e --id OpenJS.NodeJS.LTS
+  ```
+  ```
+  winget install -e --id astral-sh.uv
+  ```
   ```
   irm https://claude.ai/install.ps1 | iex
   ```
 
-It may sit quietly for a minute while it downloads. When it's done, close the
-window and open a new one (same as step 1).
+Some of these sit quietly for a minute while they download. When they're
+done, **close the terminal window and open a new one** (same as step 1).
 
-**3. Start Claude and sign in.** Type `claude` and press **Enter**. The first
-time, a browser window opens so you can sign in with your Claude account.
-When you're back in the terminal you'll see a box where you can type. That's
-Claude.
-
-**4. Add Curio.** Type each of these into Claude, pressing **Enter** after
-each:
+**3. Add Curio.** Paste these two lines into the terminal, one at a time:
 
 ```
-/plugin marketplace add williamswartz0322-econo/curio-plugin
+claude plugin marketplace add williamswartz0322-econo/curio-plugin
+```
+```
+claude plugin install curio@curio
 ```
 
+On a Mac, if a box pops up offering to install "command line developer
+tools", click **Install**, wait for it to finish, and run the line again.
+
+**4. Start Curio.** Paste:
+
 ```
-/plugin install curio@curio
+claude --dangerously-load-development-channels plugin:curio@curio
 ```
 
-If Claude asks you questions about Curio's settings, the suggested answers are
-fine. Just press **Enter**. Then type `/exit`, close the window, open a new
-one, and type `claude` again so Curio loads.
+- The first time, a browser window opens so you can sign in with your Claude
+  account.
+- Claude Code then shows a warning about a "development channel". That's the
+  connection between your book window and Claude, a feature so new it carries
+  a warning label. Choose **"I am using this for local development"**.
+- You'll end up at a box where you can type. That's Claude.
 
 **5. Finish setting up.** Type:
 
@@ -87,26 +109,17 @@ one, and type `claude` again so Curio loads.
 /curio:setup
 ```
 
-Claude checks your computer and installs what's missing (it asks first),
-builds the reader, and offers to make a shortcut called `curio-study`. Say
-yes to its questions. If it installs something, it will ask you to restart
-and run `/curio:setup` once more.
+Claude builds the book reader and asks you two things: whether to let Curio's
+tools run without asking each time, and whether to make a shortcut called
+`curio-study`. Say yes to both. (Outside of setup, read what Claude is asking
+before you approve something.)
 
-**6. Restart with the shortcut.** Type `/exit`, close the window, open a new
-one, and type:
-
-```
-curio-study
-```
-
-The first time, Claude Code shows a warning about a "development channel".
-That's the connection between your book window and Claude, a feature so new
-it carries a warning label. Choose **"I am using this for local
-development"**. From now on, `curio-study` is how you start Curio.
+That's it. You can add a book right away, in the same window. Next time,
+open a terminal and type `curio-study` to start Curio.
 
 ## Add a book
 
-Inside Claude (started with `curio-study`), type `/curio:ingest`, then a
+Inside Claude (started as in step 4, or with `curio-study`), type `/curio:ingest`, then a
 space, then **drag your PDF file into the terminal window** from Finder or
 File Explorer (that fills in the file's location) and press **Enter**:
 
@@ -153,7 +166,12 @@ and `/curio:next` tells you what to work on.
 **It says "not connected" in the book window.**
 Claude Code was started without the shortcut. Type `/exit`, then start it
 again with `curio-study`, and run `/curio:study`. (Reading always works, even
-when it's not connected.)
+when it's not connected.) On a Team or Enterprise plan, an admin may first
+need to turn on channels for your organization.
+
+**`curio-study` isn't found.**
+Open a new terminal window (the shortcut only appears in windows opened after
+setup), or start Curio with the long command from step 4.
 
 **Claude keeps asking me to approve things.**
 Run `/curio:setup` again and say yes when it offers to allow Curio's tools.
@@ -161,7 +179,18 @@ Run `/curio:setup` again and say yes when it offers to allow Curio's tools.
 **Where are my books and progress kept?**
 In a folder called `Curio` in your home folder. Nothing is uploaded anywhere
 except what Claude reads while helping you, through your own Claude account.
-Only use books you have the right to use.
+Only use books you have the right to use, and don't share your `Curio`
+folder: it contains a full copy of your books' text.
+
+**How do I get the newest version of Curio?**
+In a terminal (not inside Claude), paste these two lines, then start Curio
+again and run `/curio:setup` once:
+```
+claude plugin marketplace update curio
+```
+```
+claude plugin update curio@curio
+```
 
 **Does it cost extra?**
 No. Curio uses your Claude plan. Adding a book uses the most; studying uses

@@ -2,6 +2,7 @@
 // request here and pushes an event; a tool call (reply, settle_item,
 // record_grade, fail_request) settles it, or the timeout does.
 import crypto from "crypto";
+import type { Anchor } from "../../app/src/lib/store";
 import type { EventKind } from "./channel";
 
 export interface Outcome {
@@ -9,11 +10,16 @@ export interface Outcome {
   body: unknown;
 }
 
-interface Pending {
-  kind: EventKind;
+/** What a request carries until it is answered (an ask keeps its question until the reply). */
+export interface RequestContext {
   course?: string;
-  conversationId?: string;
   chapter?: string;
+  conversationId?: string;
+  ask?: { title: string; anchor: Anchor | null; question: string };
+}
+
+interface Pending extends RequestContext {
+  kind: EventKind;
   resolve: (outcome: Outcome) => void;
   timer: ReturnType<typeof setTimeout>;
 }
@@ -28,7 +34,7 @@ export class RequestBook {
   open(
     kind: EventKind,
     timeoutMs: number,
-    context: { course?: string; chapter?: string; conversationId?: string } = {}
+    context: RequestContext = {}
   ): { id: string; done: Promise<Outcome> } {
     const id = `${kind}-${crypto.randomBytes(5).toString("hex")}`;
     const done = new Promise<Outcome>((resolve) => {

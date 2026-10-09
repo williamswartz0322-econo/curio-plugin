@@ -12,7 +12,7 @@ const mcp = new McpServer(
   { capabilities: { ...CHANNEL_CAPABILITIES, tools: {} }, instructions: INSTRUCTIONS }
 );
 
-const state: BridgeState = { book: new RequestBook(), http: null, reader: null };
+const state: BridgeState = { book: new RequestBook(), http: null, token: "", reader: null };
 registerTools(mcp, state);
 
 let stopped = false;

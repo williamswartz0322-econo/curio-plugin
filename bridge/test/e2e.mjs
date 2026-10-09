@@ -12,6 +12,7 @@
 // outcome into that library — point it at a scratch copy.
 import { spawn } from "child_process";
 import assert from "assert/strict";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -130,7 +131,7 @@ try {
   assert.match(ask.content, /<learner_question>/);
   const context = await tool("context", { course, chapter, conversation_id: ask.meta.conversation_id });
   assert.match(context, /Concept ids for update_learner/);
-  assert.match(context, /This conversation so far/);
+  assert.doesNotMatch(context, /This conversation so far/, "a new thread has no history yet");
   await tool("reply", { request_id: ask.meta.request_id, text: "It is about $E(y|x)$." });
   const answered = await (await asking).json();
   assert.equal(answered.reply, "It is about $E(y|x)$.");
@@ -147,9 +148,24 @@ try {
     })
   );
   assert.deepEqual(updated.dropped, ["not-a-concept"]);
-  const convo = await (await fetch(`${base}/api/conversations?course=${course}&id=${conversationId}`)).json();
+  let convo = await (await fetch(`${base}/api/conversations?course=${course}&id=${conversationId}`)).json();
   assert.equal(convo.messages.length, 2);
-  step("ask → context → reply → update_learner; conversation saved");
+
+  // A follow-up in the same thread sees the first exchange.
+  const following = fetch(`${base}/api/tutor`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: base },
+    body: JSON.stringify({ course, chapter, conversationId, title: "e2e question", anchor: null, question: "Simpler?" }),
+  });
+  const ask2 = await nextEvent("ask");
+  assert.match(ask2.content, /continues 2 earlier message/);
+  const context2 = await tool("context", { course, chapter, conversation_id: conversationId });
+  assert.match(context2, /This conversation so far[\s\S]*What is the main idea/);
+  await tool("reply", { request_id: ask2.meta.request_id, text: "Simpler answer." });
+  assert.equal((await (await following).json()).reply, "Simpler answer.");
+  convo = await (await fetch(`${base}/api/conversations?course=${course}&id=${conversationId}`)).json();
+  assert.equal(convo.messages.length, 4);
+  step("ask → context → reply → update_learner; follow-up sees the thread; conversation saved");
 
   // Practice: an item is served only after validation.
   const practising = fetch(`${base}/api/practice`, {
@@ -171,20 +187,23 @@ try {
     common_errors: [{ wrong: "a wrong answer", reveals: "a misconception" }],
     source_block_ids: [blockId],
   };
+  // Play the item-validator agent: it writes its verdict to the file named on
+  // the validation file's first line. settle_item refuses without it.
+  const judge = (proposed, approved, note) => {
+    const first = fs.readFileSync(proposed.validation_file, "utf-8").split("\n")[0];
+    fs.writeFileSync(first.replace("Write your verdict to: ", ""), JSON.stringify({ approved, note }));
+  };
   const rejected = JSON.parse(await tool("propose_item", draft));
-  assert.match(await tool("settle_item", { course, draft_id: rejected.draft_id, approved: false, note: "ambiguous" }), /Rejected/);
+  await assert.rejects(tool("settle_item", { course, draft_id: rejected.draft_id }), /no verdict/);
+  judge(rejected, false, "ambiguous");
+  assert.match(await tool("settle_item", { course, draft_id: rejected.draft_id }), /Rejected/);
   const proposed = JSON.parse(await tool("propose_item", draft));
-  await tool("settle_item", {
-    course,
-    draft_id: proposed.draft_id,
-    approved: true,
-    note: "supported by the passages",
-    request_id: pr.meta.request_id,
-  });
+  judge(proposed, true, "supported by the passages");
+  await tool("settle_item", { course, draft_id: proposed.draft_id, request_id: pr.meta.request_id });
   const item = await (await practising).json();
   assert.equal(item.question, draft.question);
   assert.equal(item.expected, undefined, "answer key must not reach the reader");
-  step("practice → rejected draft discarded → validated item served without its key");
+  step("practice → unjudged draft refused → rejected draft discarded → validated item served without its key");
 
   const grading = fetch(`${base}/api/practice`, {
     method: "POST",

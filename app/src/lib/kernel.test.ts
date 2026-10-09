@@ -3,7 +3,8 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { loadItems, proposeItem, recordGrade, settleDraft } from "./assessment";
+import { loadItems, proposeItem, recordGrade, settleDraft, type PendingDraft } from "./assessment";
+import { loadChapter } from "./content";
 import { writeJsonAtomic } from "./fsutil";
 import { applyLearnerUpdate, loadLearner } from "./learner";
 
@@ -86,19 +87,35 @@ describe("learner updates", () => {
   });
 });
 
+/** Stand in for the item-validator agent: write its verdict beside the draft. */
+function validate(pending: PendingDraft, approved: boolean, note: string) {
+  fs.writeFileSync(pending.verdictFile, JSON.stringify({ approved, note }));
+}
+
 describe("practice items", () => {
-  it("serves only approved drafts and discards rejected ones", () => {
+  it("serves only drafts the validator approved, and discards rejected ones", () => {
     const rejected = proposeItem(draft);
-    expect(fs.readFileSync(rejected.validationFile, "utf-8")).toContain("[ch01-s01-b001] The mean is $E(y)$.");
-    expect(settleDraft("c", rejected.id, { approved: false, note: "ambiguous" })).toBeNull();
+    const file = fs.readFileSync(rejected.validationFile, "utf-8");
+    expect(file).toContain(`Write your verdict to: ${rejected.verdictFile}`);
+    expect(file).toContain("[ch01-s01-b001] The mean is $E(y)$.");
+    validate(rejected, false, "ambiguous");
+    expect(settleDraft("c", rejected.id)).toEqual({ item: null, note: "ambiguous" });
     expect(fs.existsSync(rejected.validationFile)).toBe(false);
     expect(loadItems("c")).toEqual({});
 
     const approved = proposeItem(draft);
-    const item = settleDraft("c", approved.id, { approved: true, note: "supported" });
+    validate(approved, true, "supported");
+    const { item } = settleDraft("c", approved.id);
     expect(item?.validated).toBe(true);
+    expect(item?.validationNote).toBe("supported");
     expect(loadItems("c")[approved.id].question).toBe(draft.question);
-    expect(() => settleDraft("c", approved.id, { approved: true, note: "again" })).toThrow();
+    expect(() => settleDraft("c", approved.id)).toThrow();
+  });
+
+  it("refuses to settle a draft the validator never judged", () => {
+    const pending = proposeItem(draft);
+    expect(() => settleDraft("c", pending.id)).toThrow(/no verdict/);
+    expect(loadItems("c")).toEqual({});
   });
 
   it("refuses citations of blocks outside the concept's passages", () => {
@@ -107,7 +124,9 @@ describe("practice items", () => {
   });
 
   it("records grades as evidence with streaks and an outcome log", () => {
-    const item = settleDraft("c", proposeItem(draft).id, { approved: true, note: "ok" })!;
+    const pending = proposeItem(draft);
+    validate(pending, true, "ok");
+    const item = settleDraft("c", pending.id).item!;
     recordGrade(item, { verdict: "correct", feedback: "Right.", misconception: null, mastery: "solid" });
     recordGrade(item, { verdict: "correct", feedback: "Right.", misconception: null, mastery: "solid" });
     expect(loadLearner("c").concepts["ch01:mean"].streak).toBe(2);
@@ -118,6 +137,12 @@ describe("practice items", () => {
     const log = fs.readFileSync(path.join(library, "courses", "c", "outcomes.jsonl"), "utf-8").trim().split("\n");
     expect(log).toHaveLength(3);
   });
+});
+
+it("refuses ids that could walk out of the library", () => {
+  expect(loadChapter("c", "ch01")).not.toBeNull();
+  expect(loadChapter("c", "../../c/chapters/ch01")).toBeNull();
+  expect(loadChapter("..", "ch01")).toBeNull();
 });
 
 it("writes JSON atomically without leaving temp files", () => {

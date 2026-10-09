@@ -23537,12 +23537,15 @@ function listCourses() {
   if (!fs.existsSync(root)) return [];
   return fs.readdirSync(root).filter((d) => fs.existsSync(path.join(root, d, "course.json"))).map((d) => JSON.parse(fs.readFileSync(path.join(root, d, "course.json"), "utf-8")));
 }
+var SAFE_ID = /^[a-zA-Z0-9-]+$/;
 function loadCourse(courseId) {
+  if (!SAFE_ID.test(courseId)) return null;
   const p = path.join(courseDir(courseId), "course.json");
   if (!fs.existsSync(p)) return null;
   return JSON.parse(fs.readFileSync(p, "utf-8"));
 }
 function loadChapter(courseId, chapterId) {
+  if (!SAFE_ID.test(courseId) || !SAFE_ID.test(chapterId)) return null;
   const p = path.join(courseDir(courseId), "chapters", `${chapterId}.json`);
   if (!fs.existsSync(p)) return null;
   return JSON.parse(fs.readFileSync(p, "utf-8"));
@@ -23609,7 +23612,7 @@ function readJson(file, fallback) {
 // ../app/src/lib/learner.ts
 import path3 from "path";
 var MAX_EVIDENCE_PER_CONCEPT = 6;
-var SAFE_ID = /^[a-zA-Z0-9-]+$/;
+var SAFE_ID2 = /^[a-zA-Z0-9-]+$/;
 function learnerPath(courseId) {
   return path3.join(courseDir(courseId), "learner.json");
 }
@@ -23650,7 +23653,7 @@ function loadLearner(courseId) {
   return readJson(learnerPath(courseId), emptyLearner(courseId));
 }
 function saveLearner(model) {
-  if (!SAFE_ID.test(model.course)) throw new Error("invalid course id");
+  if (!SAFE_ID2.test(model.course)) throw new Error("invalid course id");
   model.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
   writeJsonAtomic(learnerPath(model.course), model);
 }
@@ -23746,7 +23749,7 @@ function renderConceptIds(courseId, chapterId) {
 }
 
 // ../app/src/lib/assessment.ts
-var SAFE_ID2 = /^[a-zA-Z0-9-]+$/;
+var SAFE_ID3 = /^[a-zA-Z0-9-]+$/;
 function itemsPath(courseId) {
   return path4.join(courseDir(courseId), "practice.json");
 }
@@ -23754,7 +23757,7 @@ function loadItems(courseId) {
   return readJson(itemsPath(courseId), {});
 }
 function saveItem(item) {
-  if (!SAFE_ID2.test(item.course)) throw new Error("invalid course id");
+  if (!SAFE_ID3.test(item.course)) throw new Error("invalid course id");
   const items = loadItems(item.course);
   items[item.id] = item;
   writeJsonAtomic(itemsPath(item.course), items);
@@ -23790,7 +23793,7 @@ function draftsDir(courseId) {
   return path4.join(courseDir(courseId), "work", "validate");
 }
 function proposeItem(draft) {
-  if (!SAFE_ID2.test(draft.course)) throw new Error("invalid course id");
+  if (!SAFE_ID3.test(draft.course)) throw new Error("invalid course id");
   const chapter = loadChapter(draft.course, draft.chapter);
   const entry = conceptRegistry(draft.course).get(draft.conceptKey);
   if (!chapter || !entry) throw new Error(`unknown concept ${draft.conceptKey}`);
@@ -23804,10 +23807,13 @@ function proposeItem(draft) {
   const id = crypto3.randomUUID();
   const dir = draftsDir(draft.course);
   const validationFile = path4.join(dir, `${id}.md`);
+  const verdictFile = path4.join(dir, `${id}.verdict.json`);
   fs3.mkdirSync(dir, { recursive: true });
   fs3.writeFileSync(
     validationFile,
-    `<question>${draft.question}</question>
+    `Write your verdict to: ${verdictFile}
+
+<question>${draft.question}</question>
 
 <intended_answer>${draft.expected}</intended_answer>
 
@@ -23821,19 +23827,28 @@ ${source}
     id,
     conceptName: entry.name,
     validationFile,
+    verdictFile,
     createdAt: (/* @__PURE__ */ new Date()).toISOString()
   };
   writeJsonAtomic(path4.join(dir, `${id}.json`), pending);
   return pending;
 }
-function settleDraft(courseId, draftId, verdict) {
-  if (!SAFE_ID2.test(courseId) || !SAFE_ID2.test(draftId)) throw new Error("invalid id");
+function settleDraft(courseId, draftId) {
+  if (!SAFE_ID3.test(courseId) || !SAFE_ID3.test(draftId)) throw new Error("invalid id");
   const dir = draftsDir(courseId);
   const pending = readJson(path4.join(dir, `${draftId}.json`), null);
   if (!pending) throw new Error(`no pending draft ${draftId}`);
-  fs3.rmSync(path4.join(dir, `${draftId}.json`), { force: true });
-  fs3.rmSync(pending.validationFile, { force: true });
-  if (!verdict.approved) return null;
+  const verdict = readJson(pending.verdictFile, null);
+  if (!verdict || typeof verdict.approved !== "boolean") {
+    throw new Error(
+      `no verdict at ${pending.verdictFile} \u2014 run the curio:item-validator agent on ${pending.validationFile} first`
+    );
+  }
+  const note = typeof verdict.note === "string" ? verdict.note : "";
+  for (const f of [path4.join(dir, `${draftId}.json`), pending.validationFile, pending.verdictFile]) {
+    fs3.rmSync(f, { force: true });
+  }
+  if (!verdict.approved) return { item: null, note };
   const item = {
     id: pending.id,
     course: pending.course,
@@ -23846,11 +23861,11 @@ function settleDraft(courseId, draftId, verdict) {
     commonErrors: pending.commonErrors,
     sourceBlockIds: pending.sourceBlockIds,
     validated: true,
-    validationNote: verdict.note,
+    validationNote: note,
     createdAt: (/* @__PURE__ */ new Date()).toISOString()
   };
   saveItem(item);
-  return item;
+  return { item, note };
 }
 function recordGrade(item, grade2) {
   applyGrade(item, grade2);
@@ -24298,12 +24313,12 @@ function planToday(courseId) {
 
 // ../app/src/lib/store.ts
 import path7 from "path";
-var SAFE_ID3 = /^[a-zA-Z0-9-]+$/;
+var SAFE_ID4 = /^[a-zA-Z0-9-]+$/;
 function conversationsDir(course) {
   return path7.join(courseDir(course), "conversations");
 }
 function saveConversation(conv) {
-  if (!SAFE_ID3.test(conv.id) || !SAFE_ID3.test(conv.course)) {
+  if (!SAFE_ID4.test(conv.id) || !SAFE_ID4.test(conv.course)) {
     throw new Error("invalid conversation or course id");
   }
   writeJsonAtomic(path7.join(conversationsDir(conv.course), `${conv.id}.json`), conv);
@@ -24322,7 +24337,7 @@ function appendMessage(head, message) {
   return conv;
 }
 function loadConversation(course, id) {
-  if (!SAFE_ID3.test(id) || !SAFE_ID3.test(course)) return null;
+  if (!SAFE_ID4.test(id) || !SAFE_ID4.test(course)) return null;
   return readJson(path7.join(conversationsDir(course), `${id}.json`), null);
 }
 
@@ -24363,7 +24378,7 @@ import http from "http";
 var ASK_TIMEOUT_MS = 5 * 6e4;
 var PRACTICE_TIMEOUT_MS = 8 * 6e4;
 var GRADE_TIMEOUT_MS = 5 * 6e4;
-var SAFE_ID4 = /^[a-zA-Z0-9-]+$/;
+var SAFE_ID5 = /^[a-zA-Z0-9-]+$/;
 var MAX_BODY_BYTES = 256 * 1024;
 function notConnectedDetail() {
   return `Claude Code isn't answering this reader. Ask and Practice need a Claude Code session started with the curio channel: run \`${LAUNCH_COMMAND}\`, then /curio:study. Reading, the map, and review scheduling work without it, and /curio:practice works in any session's terminal.`;
@@ -24420,29 +24435,19 @@ function startHttp(mcp2, book, token) {
   });
 }
 async function ask(mcp2, book, b) {
-  if (!SAFE_ID4.test(b.course ?? "") || !SAFE_ID4.test(b.conversationId ?? "")) {
+  if (!SAFE_ID5.test(b.course ?? "") || !SAFE_ID5.test(b.conversationId ?? "")) {
     return bad(400, "invalid course or conversation id");
   }
   const chapter = loadChapter(b.course, b.chapter);
   if (!loadCourse(b.course) || !chapter) return bad(404, "unknown course or chapter");
   if (!b.question?.trim()) return bad(400, "empty question");
   const earlier = loadConversation(b.course, b.conversationId)?.messages.length ?? 0;
-  appendMessage(
-    {
-      id: b.conversationId,
-      course: b.course,
-      chapter: b.chapter,
-      title: (b.title || b.question).slice(0, 80),
-      anchor: b.anchor,
-      model: "claude-code"
-    },
-    { role: "user", content: b.question }
-  );
   const section = b.anchor?.sectionId ? chapter.sections.find((s) => s.id === b.anchor?.sectionId) : null;
   const { id, done } = book.open("ask", ASK_TIMEOUT_MS, {
     course: b.course,
     chapter: b.chapter,
-    conversationId: b.conversationId
+    conversationId: b.conversationId,
+    ask: { title: (b.title || b.question).slice(0, 80), anchor: b.anchor, question: b.question }
   });
   await pushEvent(
     mcp2,
@@ -24465,7 +24470,7 @@ ${b.question}
   return done;
 }
 async function practice(mcp2, book, b) {
-  if (!SAFE_ID4.test(b.course ?? "")) return bad(400, "invalid course id");
+  if (!SAFE_ID5.test(b.course ?? "")) return bad(400, "invalid course id");
   const chapter = loadChapter(b.course, b.chapter);
   if (!chapter) return bad(404, "unknown course or chapter");
   const concept = b.concept ? conceptRegistry(b.course).get(b.concept) : void 0;
@@ -24488,7 +24493,7 @@ Curio's action engine adds: ${b.emphasis}` : ""),
   return done;
 }
 async function grade(mcp2, book, b) {
-  if (!SAFE_ID4.test(b.course ?? "")) return bad(400, "invalid course id");
+  if (!SAFE_ID5.test(b.course ?? "")) return bad(400, "invalid course id");
   const item = loadItems(b.course)[b.itemId];
   if (!item) return bad(404, "unknown item");
   if (!b.answer?.trim()) return bad(400, "answer required");
@@ -24572,7 +24577,7 @@ async function startReader(env) {
     stop();
     throw err;
   }
-  return { url, stop };
+  return { url, stop, alive: () => child.exitCode === null && child.signalCode === null };
 }
 var MAC_APP_BROWSERS = ["Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium", "Vivaldi"];
 var WINDOWS_APP_BROWSERS = [
@@ -24662,17 +24667,17 @@ function registerTools(mcp2, state2) {
     async ({ course, chapter }) => {
       try {
         if (!state2.http) {
-          const token = crypto4.randomBytes(24).toString("hex");
-          state2.http = await startHttp(mcp2.server, book, token);
+          state2.token = crypto4.randomBytes(24).toString("hex");
+          state2.http = await startHttp(mcp2.server, book, state2.token);
+        }
+        if (!state2.reader?.alive()) {
           state2.reader = await startReader({
             CURIO_BRIDGE_URL: state2.http.url,
-            CURIO_BRIDGE_TOKEN: token,
+            CURIO_BRIDGE_TOKEN: state2.token,
             CURIO_LIBRARY: contentDir()
           });
         }
       } catch (err) {
-        state2.http?.close();
-        state2.http = null;
         return error2(`Could not start the reader: ${err instanceof Error ? err.message : err}`);
       }
       const page = course && chapter ? `/read/${course}/${chapter}` : course ? `/map/${course}` : "/";
@@ -24730,13 +24735,16 @@ function registerTools(mcp2, state2) {
       if (pending.kind !== "ask") {
         return error2(`request ${request_id} is a ${pending.kind} request \u2014 use settle_item or record_grade`);
       }
-      const conv = loadConversation(pending.course, pending.conversationId);
-      if (conv) {
-        appendMessage(
-          { id: conv.id, course: conv.course, chapter: conv.chapter, title: conv.title, anchor: conv.anchor, model: conv.model },
-          { role: "assistant", content: answer }
-        );
-      }
+      const head = {
+        id: pending.conversationId,
+        course: pending.course,
+        chapter: pending.chapter,
+        title: pending.ask.title,
+        anchor: pending.ask.anchor,
+        model: "claude-code"
+      };
+      appendMessage(head, { role: "user", content: pending.ask.question });
+      appendMessage(head, { role: "assistant", content: answer });
       book.settle(request_id, { status: 200, body: { reply: answer } });
       return text("Sent. Now record what the exchange showed with update_learner.");
     }
@@ -24808,7 +24816,7 @@ ${passages}
   mcp2.registerTool(
     "propose_item",
     {
-      description: "Submit a drafted practice item for independent validation. Returns a draft id and a validation file: run the curio:item-validator agent on that file, then call settle_item with its verdict. Never show the question to the learner before it is approved.",
+      description: "Submit a drafted practice item for independent validation. Returns a draft id and a validation file: run the curio:item-validator agent on that file (it writes its verdict beside it), then call settle_item. Never show the question to the learner before it is approved.",
       inputSchema: {
         course: string2(),
         concept_key: string2(),
@@ -24842,23 +24850,24 @@ ${passages}
   mcp2.registerTool(
     "settle_item",
     {
-      description: "Record the item-validator's verdict on a draft. Approved: the item is saved and, with a request_id, served to the reader. Rejected: it is discarded \u2014 draft another (next-weakest concept), up to three attempts, then fail_request.",
+      description: "After the curio:item-validator agent has written its verdict for a draft, settle it. Approved: the item is saved and, with a request_id, served to the reader. Rejected: it is discarded \u2014 draft another (next-weakest concept), up to three attempts, then fail_request. Refuses if the validator hasn't written a verdict.",
       inputSchema: {
         course: string2(),
         draft_id: string2(),
-        approved: boolean2(),
-        note: string2(),
         request_id: string2().optional()
       }
     },
-    async ({ course, draft_id, approved, note, request_id }) => {
-      let item;
+    async ({ course, draft_id, request_id }) => {
+      let settled;
       try {
-        item = settleDraft(course, draft_id, { approved, note });
+        settled = settleDraft(course, draft_id);
       } catch (err) {
         return error2(err instanceof Error ? err.message : String(err));
       }
-      if (!item) return text("Rejected and discarded. Draft another item, or fail_request after three tries.");
+      const { item, note } = settled;
+      if (!item) {
+        return text(`Rejected (${note}) and discarded. Draft another item, or fail_request after three tries.`);
+      }
       if (request_id && !book.settle(request_id, { status: 200, body: publicItem(item) })) {
         return text(`Saved item ${item.id}, but request ${request_id} had already closed.`);
       }
@@ -24947,7 +24956,7 @@ var mcp = new McpServer(
   { name: "curio", version: "0.1.0" },
   { capabilities: { ...CHANNEL_CAPABILITIES, tools: {} }, instructions: INSTRUCTIONS }
 );
-var state = { book: new RequestBook(), http: null, reader: null };
+var state = { book: new RequestBook(), http: null, token: "", reader: null };
 registerTools(mcp, state);
 var stopped = false;
 function shutdown() {

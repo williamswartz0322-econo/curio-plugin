@@ -129,14 +129,25 @@ def write_tasks(
     course: str,
     book: dict,
 ) -> dict:
-    """Write work/chNN/{manifest.json, batch-KK.task.md}. Returns the manifest."""
+    """Write work/chNN/{manifest.json, batch-KK.task.md}. Returns the manifest.
+
+    Answers from an earlier run are kept when the batch plan is unchanged, so
+    re-running after hitting a usage limit only redoes the unfinished batches.
+    """
     chapter_id = f"ch{raw.number:02d}"
     work = course_dir / "work" / chapter_id
     work.mkdir(parents=True, exist_ok=True)
-    for stale in work.glob("batch-*"):
-        stale.unlink()
 
     batches = plan_batches(raw)
+    previous_path = work / "manifest.json"
+    previous = json.loads(previous_path.read_text()) if previous_path.exists() else None
+    same_plan = previous is not None and [
+        (b["first_page"], b["last_page"], b["wanted"]) for b in previous["batches"]
+    ] == [(b.first_page, b.last_page, b.wanted) for b in batches]
+    for stale in work.glob("batch-*"):
+        if not (same_plan and stale.name.endswith(".blocks.txt")):
+            stale.unlink()
+
     for batch in batches:
         batch.task = str(work / f"batch-{batch.index:02d}.task.md")
         batch.output = str(work / f"batch-{batch.index:02d}.blocks.txt")

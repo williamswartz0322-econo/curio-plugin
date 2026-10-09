@@ -139,3 +139,16 @@ def test_dropped_boundary_page_is_caught(tmp_path):
     )
     reports, sections = assemble.assemble(work)
     assert sections is not None, [r.render() for r in reports]
+
+
+def test_first_page_of_the_chapter_counts(tmp_path):
+    # Batch 1 has no predecessor, so skipping its first page is a real loss.
+    page10 = " ".join(f"alpha{chr(97 + i % 26)}{chr(97 + i // 26)}" for i in range(200))
+    raw_answer = "=== section 1.1 | The Market\n--- paragraph p11\nDemand curves slope downward because people value apartments differently.\n"
+    work = make_work(tmp_path, [(10, 11, raw_answer)])
+    (work.parent.parent / "raw" / "ch01.txt").write_text(
+        f"[[page 10]]\n{page10}\n\n[[page 11]]\nDemand curves slope downward because people value apartments differently.\n"
+    )
+    reports, sections = assemble.assemble(work)
+    assert sections is None
+    assert "text was dropped" in reports[0].errors[0]

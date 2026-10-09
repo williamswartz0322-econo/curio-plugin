@@ -97,7 +97,9 @@ def cmd_extract(args: argparse.Namespace) -> None:
     batches = manifest["batches"]
     print(f"{len(batches)} structuring task(s) in {course_dir / 'work' / manifest['chapter']['id']}:")
     for b in batches:
-        print(f"  batch {b['index']}: pages {b['first_page']}-{b['last_page']}")
+        done = Path(b["output"]).exists() and assemble.check_batch(manifest, b).ok
+        print(f"  batch {b['index']}: pages {b['first_page']}-{b['last_page']}"
+              + ("  — already done (answer passes its check; no agent needed)" if done else ""))
         print(f"    task:   {b['task']}")
         print(f"    answer: {b['output']}")
 

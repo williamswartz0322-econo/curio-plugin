@@ -13,12 +13,15 @@ assume they know what a terminal command does. Work out the platform first
 
 ## 1. Check what's installed
 
-Run `node --version` (needs 20 or newer) and `uv --version`.
+Run `node --version` (needs 20 or newer) and `uv --version`; on Windows also
+`git --version` (Git for Windows gives Claude Code the shell Curio's commands
+expect).
 
 If something is missing or Node is too old, offer to install it. With their
 yes:
 
-- **Windows:** `winget install --id OpenJS.NodeJS.LTS -e` and
+- **Windows:** `winget install --id Git.Git -e`,
+  `winget install --id OpenJS.NodeJS.LTS -e`, and
   `winget install --id astral-sh.uv -e` (accept the source agreements if
   winget asks). If winget isn't available, send them to https://nodejs.org
   (big download button, click Next through the installer) and run
@@ -60,9 +63,12 @@ user settings file (`~/.claude/settings.json`; on Windows
 
 - `mcp__plugin_curio_curio` — Curio's own tools (course and progress files)
 - `Bash(curio *)` — the program that turns PDFs into courses
-- `Read(<library>/**)` and `Edit(<library>/**)` — so the PDF-processing
-  helpers can read and write in the library, using the path step 3 printed
-  (written as `~/Curio/**` for the default)
+- `Read(<library>/**)` — so Curio's helpers can read the library
+- `Edit(<library>/courses/*/work/**)` — so the PDF-processing helpers can
+  write their answers. Only the `work` folders: chapters and progress are
+  changed through Curio's own tools, which check every change.
+
+Use the path step 3 printed, written as `~/Curio/...` for the default.
 
 Only edit the file if they agree. Read it first and merge into the existing
 `allow` list; never remove or replace anything already there.
@@ -96,8 +102,11 @@ channels.
 
 ## 6. Finish
 
-Summarize what was done in a few plain lines, then the next steps:
-1. `/exit`, close this window, open a new terminal, and type `curio-study`.
+Summarize what was done in a few plain lines. Nothing needs a restart unless
+step 1 installed something. Then the next steps:
+1. If this session was started with Curio's connection on (a dim
+   "Channels (experimental) … plugin:curio" line under the banner), they can
+   carry straight on. Otherwise, `/exit` and start again with `curio-study`.
 2. Add a book: `/curio:ingest` followed by the PDF (dragging the file into the
    window types its location).
 3. Study: `/curio:study`.

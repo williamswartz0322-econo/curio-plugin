@@ -24,6 +24,6 @@ Question kinds — pick the one that best exposes understanding of THIS concept,
 A wrong practice answer teaches something false, which is worse than no practice at all. So every item is checked by a reviewer that did not write it:
 
 1. `propose_item` with the draft. It returns `draft_id` and `validation_file`.
-2. Run the `curio:item-validator` agent with a prompt containing only the validation file path. Do not add your own opinion of the item.
-3. `settle_item` with the validator's `approved` and `note`.
+2. Run the `curio:item-validator` agent with a prompt containing only the validation file path. Do not add your own opinion of the item. It writes its verdict to a file beside the draft.
+3. `settle_item` with the draft id. It reads the validator's verdict from that file, and refuses if there isn't one. Never write the verdict file yourself.
 4. If rejected, draft a new item — for the next concept in `practice_targets` when no concept was requested — and repeat. After three rejections, give up (`fail_request` with a short apology in the reader).

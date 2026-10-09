@@ -1,8 +1,12 @@
+import { rejectForeign } from "@/lib/bridge";
 import { listConversations, loadConversation } from "@/lib/store";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request): Promise<Response> {
+  // Conversations are the learner's own words; only the reader itself may read them.
+  const forbidden = rejectForeign(req);
+  if (forbidden) return forbidden;
   const url = new URL(req.url);
   const course = url.searchParams.get("course");
   const chapter = url.searchParams.get("chapter");

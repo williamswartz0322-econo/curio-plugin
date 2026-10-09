@@ -11,8 +11,9 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 127
 fi
 
-ROOT_KEY="$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)"
-export UV_PROJECT_ENVIRONMENT="${XDG_CACHE_HOME:-$HOME/.cache}/curio/venv-$ROOT_KEY"
+# One environment for every plugin version: uv re-syncs it to whichever
+# plugin copy runs it, so updates don't leave old environments behind.
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${XDG_CACHE_HOME:-$HOME/.cache}/curio/venv}"
 unset VIRTUAL_ENV
 
 exec uv run --frozen --quiet --project "$ROOT/pipeline" curio "$@"

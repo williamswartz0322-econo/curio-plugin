@@ -1,3 +1,4 @@
+import { rejectForeign } from "@/lib/bridge";
 import { clearGoal, loadGoal, planToday, saveGoal } from "@/lib/plan";
 
 export const runtime = "nodejs";
@@ -10,6 +11,8 @@ export async function GET(req: Request): Promise<Response> {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const forbidden = rejectForeign(req);
+  if (forbidden) return forbidden;
   const body = (await req.json()) as {
     course: string;
     targetDate?: string;

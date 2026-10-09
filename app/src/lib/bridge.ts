@@ -24,9 +24,15 @@ export function rejectForeign(req: Request): Response | null {
   const host = req.headers.get("host") ?? "";
   const origin = req.headers.get("origin");
   const loopback = /^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(host);
-  if (!loopback || (origin && new URL(origin).host !== host)) {
-    return Response.json({ error: "forbidden" }, { status: 403 });
+  let sameOrigin = true;
+  if (origin) {
+    try {
+      sameOrigin = new URL(origin).host === host;
+    } catch {
+      sameOrigin = false; // "null" and other opaque origins
+    }
   }
+  if (!loopback || !sameOrigin) return Response.json({ error: "forbidden" }, { status: 403 });
   return null;
 }
 

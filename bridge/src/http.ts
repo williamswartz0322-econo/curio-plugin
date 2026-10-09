@@ -7,7 +7,7 @@ import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { loadItems } from "../../app/src/lib/assessment";
 import { loadChapter, loadCourse } from "../../app/src/lib/content";
 import { conceptRegistry } from "../../app/src/lib/learner";
-import { appendMessage, loadConversation, type Anchor } from "../../app/src/lib/store";
+import { loadConversation, type Anchor } from "../../app/src/lib/store";
 import { LAUNCH_COMMAND, pushEvent } from "./channel";
 import type { Outcome, RequestBook } from "./requests";
 
@@ -112,18 +112,9 @@ async function ask(mcp: Server, book: RequestBook, b: AskBody): Promise<Outcome>
   if (!loadCourse(b.course) || !chapter) return bad(404, "unknown course or chapter");
   if (!b.question?.trim()) return bad(400, "empty question");
 
+  // The question is saved together with its answer (in the reply tool), so a
+  // request that times out leaves no dangling message to duplicate on retry.
   const earlier = loadConversation(b.course, b.conversationId)?.messages.length ?? 0;
-  appendMessage(
-    {
-      id: b.conversationId,
-      course: b.course,
-      chapter: b.chapter,
-      title: (b.title || b.question).slice(0, 80),
-      anchor: b.anchor,
-      model: "claude-code",
-    },
-    { role: "user", content: b.question }
-  );
 
   const section = b.anchor?.sectionId
     ? chapter.sections.find((s) => s.id === b.anchor?.sectionId)
@@ -132,6 +123,7 @@ async function ask(mcp: Server, book: RequestBook, b: AskBody): Promise<Outcome>
     course: b.course,
     chapter: b.chapter,
     conversationId: b.conversationId,
+    ask: { title: (b.title || b.question).slice(0, 80), anchor: b.anchor, question: b.question },
   });
   await pushEvent(
     mcp,

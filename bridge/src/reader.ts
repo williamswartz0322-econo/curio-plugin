@@ -7,6 +7,7 @@ import path from "path";
 
 export interface Reader {
   url: string;
+  alive: () => boolean;
   stop: () => void;
 }
 
@@ -86,7 +87,7 @@ export async function startReader(env: Record<string, string>): Promise<Reader> 
     stop();
     throw err;
   }
-  return { url, stop };
+  return { url, stop, alive: () => child.exitCode === null && child.signalCode === null };
 }
 
 // Chromium browsers can show a page as an app: its own window, no tabs or

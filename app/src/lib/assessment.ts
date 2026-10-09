@@ -112,6 +112,7 @@ export interface PendingDraft extends ItemDraft {
   id: string;
   conceptName: string;
   validationFile: string;
+  verdictFile: string;
   createdAt: string;
 }
 
@@ -141,10 +142,12 @@ export function proposeItem(draft: ItemDraft): PendingDraft {
   const id = crypto.randomUUID();
   const dir = draftsDir(draft.course);
   const validationFile = path.join(dir, `${id}.md`);
+  const verdictFile = path.join(dir, `${id}.verdict.json`);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     validationFile,
-    `<question>${draft.question}</question>\n\n` +
+    `Write your verdict to: ${verdictFile}\n\n` +
+      `<question>${draft.question}</question>\n\n` +
       `<intended_answer>${draft.expected}</intended_answer>\n\n` +
       `<passages>\n${source}\n</passages>\n`
   );
@@ -153,6 +156,7 @@ export function proposeItem(draft: ItemDraft): PendingDraft {
     id,
     conceptName: entry.name,
     validationFile,
+    verdictFile,
     createdAt: new Date().toISOString(),
   };
   writeJsonAtomic(path.join(dir, `${id}.json`), pending);
@@ -160,21 +164,27 @@ export function proposeItem(draft: ItemDraft): PendingDraft {
 }
 
 /**
- * Serve a draft only on the validator's approval (§2.19). A rejected draft is
- * discarded; the caller tries another concept rather than serving it.
+ * Serve a draft only on the validator's approval (§2.19). The verdict is read
+ * from the file the item-validator agent wrote — not taken from the caller —
+ * so the check can't be skipped by simply asserting it passed. A rejected
+ * draft is discarded; the caller tries another concept rather than serving it.
  */
-export function settleDraft(
-  courseId: string,
-  draftId: string,
-  verdict: { approved: boolean; note: string }
-): PracticeItem | null {
+export function settleDraft(courseId: string, draftId: string): { item: PracticeItem | null; note: string } {
   if (!SAFE_ID.test(courseId) || !SAFE_ID.test(draftId)) throw new Error("invalid id");
   const dir = draftsDir(courseId);
   const pending = readJson<PendingDraft | null>(path.join(dir, `${draftId}.json`), null);
   if (!pending) throw new Error(`no pending draft ${draftId}`);
-  fs.rmSync(path.join(dir, `${draftId}.json`), { force: true });
-  fs.rmSync(pending.validationFile, { force: true });
-  if (!verdict.approved) return null;
+  const verdict = readJson<{ approved?: unknown; note?: unknown } | null>(pending.verdictFile, null);
+  if (!verdict || typeof verdict.approved !== "boolean") {
+    throw new Error(
+      `no verdict at ${pending.verdictFile} — run the curio:item-validator agent on ${pending.validationFile} first`
+    );
+  }
+  const note = typeof verdict.note === "string" ? verdict.note : "";
+  for (const f of [path.join(dir, `${draftId}.json`), pending.validationFile, pending.verdictFile]) {
+    fs.rmSync(f, { force: true });
+  }
+  if (!verdict.approved) return { item: null, note };
 
   const item: PracticeItem = {
     id: pending.id,
@@ -188,11 +198,11 @@ export function settleDraft(
     commonErrors: pending.commonErrors,
     sourceBlockIds: pending.sourceBlockIds,
     validated: true,
-    validationNote: verdict.note,
+    validationNote: note,
     createdAt: new Date().toISOString(),
   };
   saveItem(item);
-  return item;
+  return { item, note };
 }
 
 /** Fold a grade into the learner model as observed evidence and return it. */
@@ -226,7 +236,7 @@ function logOutcome(item: PracticeItem, grade: Grade, before?: ConceptState): vo
   fs.appendFileSync(path.join(courseDir(item.course), "outcomes.jsonl"), line + "\n");
 }
 
-/** Observed mastery — the only path to `developing` or `solid` (§2.8). */
+/** Fold a graded answer into the learner model as observed evidence (§2.8). */
 function applyGrade(item: PracticeItem, grade: Grade): void {
   const learner = loadLearner(item.course);
   const registry = conceptRegistry(item.course);
