@@ -64,7 +64,7 @@ The lesson from building v0: **everything tailored shares one spine.** What make
 | **Coding / problem lab** | Sandboxed exercises generated from source material, auto-graded, feeding evidence back like any other attempt | ○ |
 | **Knowledge web** | Obsidian-style graph of everything the learner has *learned*, across all courses and subjects — only demonstrated concepts appear, cross-subject links included, growing as they learn. The course map shows the curriculum; the web shows the person. | ◐ thin slice |
 
-The rule that keeps the "insane architectural project" sane: **new renderers may not invent private state.** If a lab grades an attempt, that grade lands in the same learner model the tutor reads. If a lecture explains a concept, that exposure is recorded where the planner can see it. One learner, one model, every surface.
+The rule that keeps an ambitious architecture manageable: **new renderers may not invent private state.** If a lab grades an attempt, that grade lands in the same learner model the tutor reads. If a lecture explains a concept, that exposure is recorded where the planner can see it. One learner, one model, every surface.
 
 ## Horizons
 
